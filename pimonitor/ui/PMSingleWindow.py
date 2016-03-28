@@ -54,9 +54,8 @@ class PMSingleWindow(object):
 				value = self._param.get_calculated_value(self._packets)
 		else:
 			value = "??"
-				
+
 		value_lbl = self._value_font.render(value, self._font_aa, self._fg_color)
-		
 		self._surface.blit(self._title_lbl, (2, 2))
 		self._surface.blit(value_lbl, (self._x_offset, 10 + self._title_font_size))
 		self._surface.blit(self._unit_lbl, (self._end_x_offset, 10 + self._title_font_size + self._value_font_size))

@@ -23,6 +23,31 @@ from pimonitor.PMXmlParser import PMXmlParser
 from pimonitor.ui.PMScreen import PMScreen
 from pimonitor.ui.PMSingleWindow import PMSingleWindow
 
+import datetime
+import sqlite3
+import json
+# json.dumps({'key':'value'})
+
+from pprint import pprint
+
+def insert_into_sqlite(textdata):
+	sqlite_file = '../test.db'
+	# Connecting to the database file
+	conn = sqlite3.connect(sqlite_file)
+	c = conn.cursor()
+	# A) Inserts an ID with a specific value in a second column
+	try:
+	    insert_stament = """INSERT INTO test (text) VALUES (?)"""
+
+	    c.execute(insert_stament, [textdata])
+	except sqlite3.IntegrityError:
+	    print('ERROR: ID already exists in PRIMARY KEY column {}'.format(id_column))
+	conn.commit()
+	conn.close()
+
+def timestamp_milisecond():
+    return int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds() * 1000) 
+
 if __name__ == '__main__':
 
 	from evdev import InputDevice, list_devices
@@ -40,6 +65,9 @@ if __name__ == '__main__':
 	log_id = PM.log('Application started')
 	
 	screen.render()
+
+	# insert_into_sqlite('bahhahaha1')
+
 	
 	parser = PMXmlParser();
 
@@ -54,6 +82,8 @@ if __name__ == '__main__':
 		output = open("data/data.pkl", "wb")
 		pickle.dump(defined_parameters, output, -1)
 		output.close()		
+
+	# insert_into_sqlite('bahhahaha2')
 
 	connection = PMConnection()
 	#connection = PMDemoConnection()
@@ -100,20 +130,57 @@ if __name__ == '__main__':
 			# each ID must be in a form P01 - first letter, then a number
 			supported_parameters.sort(key=lambda p: int(p.get_id()[1:]), reverse=False)
 			
-			for p in supported_parameters:			
+			for p in supported_parameters:
+				print '"' + p.get_name() + '"'
 				window = PMSingleWindow(p)
 				screen.add_window(window)
 
+			print "\n\n\n\n"
+			desired_params = ["Engine Load (Calculated)", "Engine Load (Relative)", "Manifold Absolute Pressure", "Manifold Relative Pressure (Corrected)", "Engine Speed", "Vehicle Speed", "Mass Airflow", "Throttle Opening Angle", "Rear O2 Sensor", "Mass Airflow Sensor Voltage", "Atmospheric Pressure", "Manifold Relative Pressure", "Accelerator Pedal Angle", "A/F Sensor #1 Current", "A/F Sensor #1 Resistance", "A/F Sensor #1", "Main Throttle Sensor", "Wheel Speed Front Right", "Wheel Speed Front Left", "Wheel Speed Rear Right", "Wheel Speed Rear Left", "Steering Angle Sensor", "Fuel Consumption (Est.)"]
+					
 			while True:
+
+				for param in supported_parameters:			
+					if param.get_name() in desired_params:
+						parameters = param.get_parameters()
+						if parameters:
+							# print "Got len(parameters): " + str(len(parameters))
+							packets = connection.read_parameters(parameters)
+						else:
+							packets = [connection.read_parameter(param)]
+						if packets != None:
+							if param.get_address_length() > 0:
+								value = param.get_value(packets[0])
+							elif param.get_dependencies():
+								value = param.get_calculated_value(packets)
+							else:
+								value = "??"
+							blob = {'time' : timestamp_milisecond(), 'name' : param.get_name(), 'value' : value}
+							jason = json.dumps(blob)
+							insert_into_sqlite(jason)
+							print jason
 				window = screen.get_window()
 				param = window.get_parameter()
 				parameters = param.get_parameters()
-				if parameters:
-					packets = connection.read_parameters(parameters)
-					window.set_packets(packets)
-				else:
-					packet = connection.read_parameter(param)
-					window.set_packets([packet])
+
+				# if parameters:
+				# 	# print "Got len(parameters): " + str(len(parameters))
+				# 	packets = connection.read_parameters(parameters)
+					
+				# 	# if packets != None:
+				# 	# 	if param.get_address_length() > 0:
+				# 	# 		value = param.get_value(packets[0])
+				# 	# 	elif param.get_dependencies():
+				# 	# 		value = param.get_calculated_value(packets)
+				# 	# 	else:
+				# 	# 		value = "??"
+				# 		# print "param.get_name(): " + param.get_name() + " value: " + value
+
+				# 	window.set_packets(packets)
+				# else:
+				# 	packet = connection.read_parameter(param)
+
+				# 	window.set_packets([packet])
 				
 				#ecu_response_packets = connection.read_parameters(ecu_params)
 				#tcu_response_packets = connection.read_parameters(tcu_params)

@@ -11,6 +11,7 @@ import sys
 
 from pimonitor.PM import PM
 from pimonitor.PMUtils import PMUtils
+from pprint import pprint
 
 class PMScreen(object):
 	'''
@@ -30,7 +31,7 @@ class PMScreen(object):
 		# seems to suit RPi
 		self._color_depth = 16
 
-		pygame.display.set_mode((0, 0), pygame.FULLSCREEN, self._color_depth)
+		pygame.display.set_mode((640, 480))
 		#pygame.display.set_mode((640, 480), 0, self._color_depth)
 		self._surface = pygame.display.get_surface()
 
